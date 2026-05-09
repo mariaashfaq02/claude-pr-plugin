@@ -1,0 +1,13 @@
+{
+  "name": "mariaashfaq02-plugins",
+  "owner": {
+    "name": "Maria Ashfaq"
+  },
+  "plugins": [
+    {
+      "name": "bitbucket-pr",
+      "source": "./",
+      "description": "Read and reply to Bitbucket Cloud PR comments (CodeAnt AI + reviewers) without API tokens. Uses your existing browser session via Claude for Chrome."
+    }
+  ]
+}
