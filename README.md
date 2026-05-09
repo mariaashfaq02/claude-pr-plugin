@@ -15,19 +15,29 @@ If you reject the plan or ask for changes, it iterates and re-asks — never ass
 
 ## Prerequisites
 
-- **Claude Code** CLI installed
-- **[Claude for Chrome](https://claude.ai/chrome)** extension installed and signed in with the same Anthropic account
-- Logged into **Bitbucket Cloud** in Chrome (your existing session)
+1. **Claude Code CLI** — install with npm:
+   ```powershell
+   npm install -g @anthropic-ai/claude-code
+   ```
+   Verify with `claude --version`. (Requires Node.js 18+. If `claude` isn't on PATH after install, add `%APPDATA%\npm` on Windows or `$(npm config get prefix)/bin` on macOS/Linux.)
 
-That's it. No tokens, no env vars, no manual setup.
+2. **[Claude for Chrome](https://claude.ai/chrome)** extension — installed and signed in with the same Anthropic account you use for Claude Code. This is what lets the plugin read your Bitbucket session without a token.
+
+3. **Logged into Bitbucket Cloud** in Chrome (your existing session — no extra action needed if you already use Bitbucket in your browser).
 
 ## Install
 
+Open a terminal, run `claude` to launch Claude Code, then inside Claude Code run these **two slash commands**:
+
 ```
-/plugin install https://bitbucket.org/tmx-techlogix/bitbucket-pr-plugin.git
+/plugin marketplace add https://github.com/mariaashfaq02/claude-pr-plugin.git
 ```
 
-(Replace with the actual repo URL once published.)
+```
+/plugin install bitbucket-pr@mariaashfaq02-plugins
+```
+
+Then **restart Claude Code** (close and reopen) so the plugin loads. Verify by typing `/` — you should see `/pr-review` in the autocomplete list.
 
 ## Usage
 
@@ -79,8 +89,18 @@ Same workflow, just deliberate invocation.
 
 ## Updates
 
+To pull the latest version after the maintainer pushes changes:
+
 ```
-/plugin update bitbucket-pr
+/plugin marketplace update mariaashfaq02-plugins
+/plugin update bitbucket-pr@mariaashfaq02-plugins
+```
+
+## Uninstall
+
+```
+/plugin uninstall bitbucket-pr@mariaashfaq02-plugins
+/plugin marketplace remove mariaashfaq02-plugins
 ```
 
 ## License
