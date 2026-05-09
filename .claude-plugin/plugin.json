@@ -1,0 +1,9 @@
+{
+  "name": "bitbucket-pr",
+  "description": "Read and reply to Bitbucket Cloud PR comments (CodeAnt AI + reviewers) directly from Claude Code, without API tokens. Uses your existing browser session via the Claude-for-Chrome extension. Paste a PR URL or run /pr-review.",
+  "version": "0.1.0",
+  "author": {
+    "name": "TMX Techlogix Engineering"
+  },
+  "license": "MIT"
+}
