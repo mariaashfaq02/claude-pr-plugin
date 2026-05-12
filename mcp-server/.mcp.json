@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "bitbucket": {
+      "command": "node",
+      "args": ["PATH_TO_MCP_SERVER/index.js"],
+      "env": {
+        "BITBUCKET_EMAIL": "your-email@company.com",
+        "BITBUCKET_API_TOKEN": "your-atlassian-api-token"
+      }
+    }
+  }
+}
