@@ -1,33 +1,49 @@
 # bitbucket-pr — Claude Code plugin
 
-Read and reply to Bitbucket Cloud PR comments (CodeAnt AI + reviewers) directly from Claude Code. **No API tokens required** — uses your existing browser session.
+Read and reply to Bitbucket Cloud PR comments (CodeAnt AI + reviewers) directly from Claude Code.
 
-## What it does
+> Paste a PR URL → Claude reads all comments → shows you a fix plan → waits for your approval → applies fixes → commits, pushes, and replies "Fixed in `<sha>`" on every comment.
 
-Stop sending screenshots of PR comments. Paste the PR URL and Claude will:
+---
 
-1. Fetch all inline + general comments (CodeAnt AI included) with file:line context
-2. Show you a numbered plan of proposed fixes — **stops and waits for your "go"**
-3. After approval: apply fixes, commit, push
-4. Reply "Fixed in &lt;sha&gt;" on every comment it addressed (including outdated/collapsed ones)
+## Two ways to use this
 
-If you reject the plan or ask for changes, it iterates and re-asks — never assumes silence equals approval.
+| | Option A — Chrome extension | Option B — MCP server |
+|---|---|---|
+| **Setup** | Zero — uses your browser session | Needs an Atlassian API token |
+| **How it works** | Claude opens the PR in Chrome and reads it | Claude calls the Bitbucket REST API directly |
+| **Structured data** | ❌ Scrapes page text | ✅ Clean JSON (severity, resolved, file/line) |
+| **Fallback** | ✅ Always works if you're logged in | Requires token setup |
+
+Both paths are included. Option A is tried first; Option B is available if you want cleaner results.
+
+---
 
 ## Prerequisites
 
-1. **Claude Code CLI** — install with npm:
+**All users:**
+1. **Node.js 18+** — [nodejs.org](https://nodejs.org)
+2. **Claude Code CLI:**
    ```powershell
    npm install -g @anthropic-ai/claude-code
    ```
-   Verify with `claude --version`. (Requires Node.js 18+. If `claude` isn't on PATH after install, add `%APPDATA%\npm` on Windows or `$(npm config get prefix)/bin` on macOS/Linux.)
+   Verify: `claude --version`
+   > Windows: if `claude` isn't found after install, add `%APPDATA%\npm` to your PATH.
 
-2. **[Claude for Chrome](https://claude.ai/chrome)** extension — installed and signed in with the same Anthropic account you use for Claude Code. This is what lets the plugin read your Bitbucket session without a token.
+**Option A only:**
 
-3. **Logged into Bitbucket Cloud** in Chrome (your existing session — no extra action needed if you already use Bitbucket in your browser).
+3. **[Claude for Chrome](https://claude.ai/chrome)** extension — installed and signed in with the same Anthropic account as Claude Code.
+4. **Logged into Bitbucket Cloud** in Chrome (your existing session is enough).
 
-## Install
+**Option B only:**
 
-Open a terminal, run `claude` to launch Claude Code, then inside Claude Code run these **two slash commands**:
+3. **Atlassian API token** — create one at [id.atlassian.com/manage-profile/security/api-tokens](https://id.atlassian.com/manage-profile/security/api-tokens)
+
+---
+
+## Install — Plugin (Option A)
+
+Open Claude Code and run these two commands:
 
 ```
 /plugin marketplace add https://github.com/mariaashfaq02/claude-pr-plugin.git
@@ -37,64 +53,100 @@ Open a terminal, run `claude` to launch Claude Code, then inside Claude Code run
 /plugin install bitbucket-pr@mariaashfaq02-plugins
 ```
 
-Then **restart Claude Code** (close and reopen) so the plugin loads. Verify by typing `/` — you should see `/pr-review` in the autocomplete list.
+Restart Claude Code. Verify by typing `/` — you should see `/pr-review` in autocomplete.
+
+---
+
+## Install — MCP Server (Option B)
+
+**1. Install dependencies:**
+```powershell
+cd path\to\claude-pr-plugin\mcp-server
+npm install
+```
+
+**2. Register with Claude Code** (swap in your real values):
+```powershell
+claude mcp add bitbucket `
+  -e BITBUCKET_EMAIL=you@company.com `
+  -e BITBUCKET_API_TOKEN=your-token `
+  -- node path\to\claude-pr-plugin\mcp-server\index.js
+```
+
+Restart Claude Code. You'll now have these tools available: `get_pr_comments`, `post_pr_comment`, `get_pr_info`, `find_pr_for_branch`, `get_pr_diff`.
+
+---
 
 ## Usage
 
 ### Auto-trigger (recommended)
-
-Just paste a PR URL into Claude:
-
+Just paste a PR URL:
 ```
 fix the codeant comments on https://bitbucket.org/<workspace>/<repo>/pull-requests/123
 ```
 
-The skill triggers automatically.
-
-### Explicit slash command
-
+### Slash command
 ```
 /pr-review https://bitbucket.org/<workspace>/<repo>/pull-requests/123
 ```
 
-Same workflow, just deliberate invocation.
+### Auto-detect from current branch
+```
+/pr-review
+```
+No URL needed — Claude reads your current git branch and finds the open PR automatically.
 
-## Workflow walkthrough
+---
 
-1. **Paste URL.** Claude opens the PR's diff page in your already-logged-in Chrome.
-2. **Plan presented:**
+## Workflow
+
+1. **Claude fetches all comments** — inline + general, CodeAnt + reviewers
+2. **Plan presented** — numbered, sorted by severity (CRITICAL first):
    ```
-   Found 3 CodeAnt comments on path/to/File.cs:
-     1. Line 20 (Critical, security) — Hardcoded password. Fix: env var.
-     2. Line 53 (Major, possible bug) — Divide unguarded. Fix: throw on zero.
-     3. Line 45 (Major, resource leak) — HttpResponseMessage not disposed. Fix: using.
+   Found 3 comments:
+     1. [CodeAnt / CRITICAL] src/Api/Controller.cs:20 — Hardcoded password → use env var
+     2. [CodeAnt / MAJOR]    src/Api/Controller.cs:53 — Divide by zero unguarded → throw on zero
+     3. [Reviewer]           src/Api/Controller.cs:45 — HttpResponseMessage not disposed → using block
    Apply all three? Reply "go" to proceed.
    ```
-3. **You approve / reject / refine.** Iterates until you say "go" explicitly.
-4. **Fixes applied + pushed.**
-5. **Replies posted** on each addressed comment with the commit SHA.
+3. **You approve, reject, or refine.** Claude never proceeds without your explicit "go".
+4. **Fixes applied, committed, pushed.**
+5. **"Fixed in `<sha>`" posted** on every addressed comment — including outdated/collapsed ones.
+
+---
 
 ## What's NOT supported
 
 - Bitbucket Server / Data Center (cloud only)
-- Approving / merging PRs (read + reply only)
-- Marking comments as resolved (Bitbucket auto-resolves on next CodeAnt scan, or you click Resolve manually)
-- GitHub / GitLab (use the built-in `gh` CLI for GitHub)
+- Approving or merging PRs
+- Marking comments as resolved (Bitbucket auto-resolves on next CodeAnt scan)
+- GitHub / GitLab
+
+---
 
 ## Troubleshooting
 
-- **"Chrome extension not connected"** → install/sign in to Claude for Chrome, or fall back to the bundled `fetch-pr.ps1` (requires an Atlassian API token; see `skills/bitbucket-pr/SKILL.md` Option 3).
-- **Comment is "OUTDATED" and collapsed** → expected; the skill clicks the "N other comments" button to expand the modal automatically.
-- **Reply went to wrong comment** → cancel the reply box (Bitbucket warns about drafts), re-trigger.
+**"Chrome extension not connected"**
+→ Make sure [Claude for Chrome](https://claude.ai/chrome) is installed and signed in. Then retry — or switch to Option B (MCP server).
+
+**Comment shows as "OUTDATED"**
+→ Expected. The skill automatically expands the collapsed modal and replies there too.
+
+**`claude` not found after `npm install -g`**
+→ Add npm's global bin to PATH:
+- Windows: `%APPDATA%\npm`
+- macOS/Linux: run `npm config get prefix` and add `/bin` to PATH
+
+---
 
 ## Updates
-
-To pull the latest version after the maintainer pushes changes:
 
 ```
 /plugin marketplace update mariaashfaq02-plugins
 /plugin update bitbucket-pr@mariaashfaq02-plugins
 ```
+
+---
 
 ## Uninstall
 
@@ -102,6 +154,8 @@ To pull the latest version after the maintainer pushes changes:
 /plugin uninstall bitbucket-pr@mariaashfaq02-plugins
 /plugin marketplace remove mariaashfaq02-plugins
 ```
+
+---
 
 ## License
 
